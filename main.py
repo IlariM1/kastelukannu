@@ -1,6 +1,6 @@
 import time
 
-from machine import Pin, ADC
+from machine import Pin, ADC, PWM
 
 LEFT_BUTTON_PIN = Pin(0, Pin.IN)
 RIGHT_BUTTON_PIN = Pin(35, Pin.IN)
@@ -8,8 +8,10 @@ MOISTURE_PIN = ADC(Pin(12))
 MOISTURE_PIN.atten(ADC.ATTN_11DB)
 MOISTURE_PIN.width(ADC.WIDTH_12BIT)
 
-min_moisture=0
-max_moisture=4095
+WATER_PUMP_CONTROLLER_PIN = PWM(Pin(13))
+
+min_moisture = 2000
+max_moisture = 3500
 
 
 class AvailableButton:
@@ -58,6 +60,10 @@ class Button:
         return None
 
 
+def calculate_current_moisture(pin_value: int) -> float:
+    return (max_moisture - pin_value) * 100 / (max_moisture - min_moisture)
+
+
 def run():
     while True:
         pressed_button = Button.button_pressed()
@@ -65,8 +71,8 @@ def run():
             print(pressed_button.button_name)
         pin_value = MOISTURE_PIN.read()
         print('raw value is: ', pin_value)
-        m = (max_moisture-pin_value)*100/(max_moisture-min_moisture)
-        moisture = '{:.1f} %'.format(m)
+        current_moisture_level = calculate_current_moisture(pin_value)
+        moisture = '{:.1f} %'.format(current_moisture_level)
         print('Soil Moisture:', moisture)
         print('')
         time.sleep(1)
