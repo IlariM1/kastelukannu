@@ -73,46 +73,64 @@ class MotorController:
 
     @staticmethod
     def to_u16(value) -> int:
-        print(min(max(math.floor(value / 100 * U16), 0), U16))
         return min(max(math.floor(value / 100 * U16), 0), U16)
 
     def stop(self):
         """
         Standby, same like stop
         """
-        print('stopping the engine')
         self._pwm.duty_u16(U16)
 
-    def start(self, speed: float | int = 50):
-        print('starting the engine with speed of :', speed)
+    def start(self):
         self._pwm.duty_u16(self.to_u16(0))
+
+    def is_stopped(self) -> bool:
+        duty_value = self._pwm.duty()
+        return duty_value != U16
 
 
 def calculate_current_moisture(pin_value: int) -> float:
     return (max_moisture - pin_value) * 100 / (max_moisture - min_moisture)
 
 
+def _water_until_moist(
+        *,
+        moisture_pin: Pin,
+        motor_controller: MotorController,
+        moisture_threshold: float,
+) -> None:
+    current_moisture_level = calculate_current_moisture(moisture_pin.read())
+    try:
+        if current_moisture_level < moisture_threshold:
+            motor_controller.start()
+            time.sleep(.5)
+    finally:
+        motor_controller.stop()
+
+
 def run():
     motor_controller = MotorController(
         pin=WATER_PUMP_CONTROLLER_PIN,
     )
+    moisture_threshold = 20.0
 
     while True:
         pressed_button = Button.button_pressed()
         if pressed_button:
             if pressed_button.button_name is AvailableButton.LEFT:
-                motor_controller.start()
-            else:
-                motor_controller.stop()
+                moisture_threshold += 1
+                print('Increasing the moisture threshold to: ', moisture_threshold)
+            if pressed_button.button_name is AvailableButton.RIGHT:
+                moisture_threshold -= 1
+                print('Decreasing the moisture threshold to: ', moisture_threshold)
 
-
-        pin_value = MOISTURE_PIN.read()
-        # print('raw value is: ', pin_value)
-        current_moisture_level = calculate_current_moisture(pin_value)
-        moisture = '{:.1f} %'.format(current_moisture_level)
-        # print('Soil Moisture:', moisture)
-        # print('')
-        time.sleep(1)
+        _water_until_moist(
+            moisture_pin=MOISTURE_PIN,
+            motor_controller=motor_controller,
+            moisture_threshold=moisture_threshold,
+        )
+        time.sleep(.5)
+        print('moisture level is ', calculate_current_moisture(MOISTURE_PIN.read()))
 
 
 if __name__ == '__main__':
