@@ -5,18 +5,10 @@ from machine import Pin, ADC, PWM, SPI
 
 import mip
 mip.install("github:peterhinch/micropython-nano-gui")
-
-from drivers.st7789.st7789_4bit import *
 from color_setup import ssd  # Create a display instance
 from gui.core.nanogui import refresh
 from gui.core.writer import CWriter
 from gui.core.colors import *
-
-ssd.fill(0)
-ssd.line(0, 0, ssd.width - 1, ssd.height - 1, GREEN)  # Green diagonal corner-to-corner
-ssd.rect(0, 0, 15, 15, RED)  # Red square at top left
-ssd.rect(ssd.width -15, ssd.height -15, 15, 15, BLUE)  # Blue square at bottom right
-ssd.show()
 
 U16 = 65535
 
@@ -118,6 +110,15 @@ def _water_until_moist(
     finally:
         motor_controller.stop()
 
+def update_screen(
+    *,
+    moisture_level,
+    trigger_treshold
+):
+    ssd.fill(0)
+    ssd.text(f'moisture level is {moisture_level}', 10, 10, RED)
+    ssd.text(f'trigger treshold is {trigger_treshold}', 10, 50, GREEN)
+    ssd.show()
 
 def run():
     motor_controller = MotorController(
@@ -126,6 +127,10 @@ def run():
     moisture_threshold = 20.0
 
     while True:
+        update_screen(
+            moisture_level=calculate_current_moisture(MOISTURE_PIN.read()),
+            trigger_treshold=moisture_threshold,
+        )
         pressed_button = Button.button_pressed()
         if pressed_button:
             if pressed_button.button_name is AvailableButton.LEFT:
