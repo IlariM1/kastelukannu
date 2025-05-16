@@ -5,33 +5,13 @@ from machine import Pin, ADC, PWM, SPI
 
 import mip
 mip.install("github:peterhinch/micropython-nano-gui")
-import gc
-from drivers.st7789.st7789_4bit import *
 
+from drivers.st7789.st7789_4bit import *
+from color_setup import ssd  # Create a display instance
 from gui.core.nanogui import refresh
 from gui.core.writer import CWriter
 from gui.core.colors import *
 
-SSD = ST7789
-
-TFT_MOSI =   19  # (SDA on schematic pdf) SPI interface output/input pin.
-TFT_SCLK =   18  # This pin is used to be serial interface clock.
-TFT_CS =      5  # Chip selection pin, low enable, high disable.
-TFT_DC =     16  # Display data/command selection pin in 4-line serial interface.
-TFT_RST =    23  # This signal will reset the device,Signal is active low.
-TFT_BL =      4  # (LEDK on schematic pdf) Display backlight control pin
-
-pdc = Pin(TFT_DC, Pin.OUT, value=0)  # Arbitrary pins
-pcs = Pin(TFT_CS, Pin.OUT, value=1)
-prst = Pin(TFT_RST, Pin.OUT, value=1)
-pbl = Pin(TFT_BL, Pin.OUT, value=1)
-print('arbitrary pins initialized')
-gc.collect()
-print('gc collect done')
-spi = SPI(1, 30_000_000, sck=Pin(18), mosi=Pin(19))
-print('SPI initializied')
-ssd = SSD(spi, height=135, width=240, dc=pdc, cs=pcs, rst=prst, disp_mode=LANDSCAPE, display=TDISPLAY)
-print('SSD initialized')
 ssd.fill(0)
 ssd.line(0, 0, ssd.width - 1, ssd.height - 1, GREEN)  # Green diagonal corner-to-corner
 ssd.rect(0, 0, 15, 15, RED)  # Red square at top left
