@@ -4,6 +4,23 @@ import time
 from machine import Pin, ADC, PWM, SPI
 
 import mip
+
+import network
+from time import sleep
+
+net = network.WLAN(network.STA_IF)
+net.active(True)
+
+while True:
+	try:
+		net.connect('', '')
+	except OSError as e:
+		print(e)
+	sleep(1)
+	if net.isconnected():
+		print('Connected')
+		break
+
 mip.install("github:peterhinch/micropython-nano-gui")
 from color_setup import ssd  # Create a display instance
 from gui.core.nanogui import refresh
