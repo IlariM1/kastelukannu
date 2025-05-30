@@ -12,14 +12,14 @@ net = network.WLAN(network.STA_IF)
 net.active(True)
 
 while True:
-	try:
-		net.connect('', '')
-	except OSError as e:
-		print(e)
-	sleep(1)
-	if net.isconnected():
-		print('Connected')
-		break
+    try:
+        net.connect('', '')
+    except OSError as e:
+        print(e)
+    sleep(1)
+    if net.isconnected():
+        print('Connected')
+        break
 
 mip.install("github:peterhinch/micropython-nano-gui")
 from color_setup import ssd  # Create a display instance
@@ -93,7 +93,7 @@ class MotorController:
             *,
             pin: Pin,
     ):
-        self._pwm = PWM(pin,freq=1000, duty_u16=U16)
+        self._pwm = PWM(pin, freq=1000, duty_u16=U16)
 
     @staticmethod
     def to_u16(value) -> int:
@@ -127,15 +127,37 @@ def _water_until_moist(
     finally:
         motor_controller.stop()
 
+
 def update_screen(
-    *,
-    moisture_level,
-    trigger_treshold
+        *,
+        moisture_level,
+        trigger_treshold
 ):
     ssd.fill(0)
     ssd.text(f'moisture level is {moisture_level}', 10, 10, RED)
     ssd.text(f'trigger treshold is {trigger_treshold}', 10, 50, GREEN)
     ssd.show()
+
+
+def _water_plant_if_needed(
+        *,
+        motor_controller: MotorController,
+        moisture_threshold: float,
+        latest_time: float,
+) -> float:
+    if latest_time >= 10:
+        _water_until_moist(
+            moisture_pin=MOISTURE_PIN,
+            motor_controller=motor_controller,
+            moisture_threshold=moisture_threshold,
+        )
+        latest_time = 0
+    else:
+        sleep(.5)
+        latest_time += .5
+
+    return latest_time
+
 
 def run():
     motor_controller = MotorController(
@@ -157,20 +179,17 @@ def run():
                 moisture_threshold -= 1
                 print('Decreasing the moisture threshold to: ', moisture_threshold)
 
-        if latest_time >= 5:
-            _water_until_moist(
-                moisture_pin=MOISTURE_PIN,
-                motor_controller=motor_controller,
-                moisture_threshold=moisture_threshold,
-            )
-            latest_time = 0
-        else:
-            sleep(.5)
-            latest_time += .5
+        latest_time = _water_plant_if_needed(
+            latest_time=latest_time,
+            motor_controller=motor_controller,
+            moisture_threshold=moisture_threshold,
+        )
 
-        time.sleep(.5)
         print('moisture level is ', calculate_current_moisture(MOISTURE_PIN.read()))
 
 
 if __name__ == '__main__':
-    run()
+    try:
+        run()
+    finally:
+        net.active(False)
