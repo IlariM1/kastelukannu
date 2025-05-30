@@ -142,7 +142,7 @@ def run():
         pin=WATER_PUMP_CONTROLLER_PIN,
     )
     moisture_threshold = 20.0
-
+    latest_time = 0
     while True:
         update_screen(
             moisture_level=calculate_current_moisture(MOISTURE_PIN.read()),
@@ -157,11 +157,17 @@ def run():
                 moisture_threshold -= 1
                 print('Decreasing the moisture threshold to: ', moisture_threshold)
 
-        _water_until_moist(
-            moisture_pin=MOISTURE_PIN,
-            motor_controller=motor_controller,
-            moisture_threshold=moisture_threshold,
-        )
+        if latest_time >= 5:
+            _water_until_moist(
+                moisture_pin=MOISTURE_PIN,
+                motor_controller=motor_controller,
+                moisture_threshold=moisture_threshold,
+            )
+            latest_time = 0
+        else:
+            sleep(.5)
+            latest_time += .5
+
         time.sleep(.5)
         print('moisture level is ', calculate_current_moisture(MOISTURE_PIN.read()))
 
